@@ -74,7 +74,7 @@ function teamStanding() {
                     let tdValue = $(childElem).text()
 
                     if (tdValue) {
-                        teamObj[keys[keyIdx]] = tdValue
+                        teamObj[keys[keyIdx]] = tdValue.trim()
                         keyIdx++
                     }
                 })
@@ -102,16 +102,16 @@ function driverStanding(year, driver) {
             const html = response.data
             const $ = cheerio.load(html);
             const element = 'body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content > div > table > tbody > tr'
-
+            const header = 'body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content-header > h1'
             const keys = [
-                'POS',
-                'Driver',
-                'Nationality',
-                'Car',
-                'PTS'
+                "POS",
+                "Name",
+                "Country",
+                "Car",
+                "PTS"
             ]
-            const keysDriver = [
-                "GrandPrix",
+            const driverkey = [
+                "Country",
                 "Date",
                 "Car",
                 "POS",
@@ -119,27 +119,30 @@ function driverStanding(year, driver) {
             ]
             $(element).each((parentIdx, parentElem) => {
                 let keyIdx = 0
-                const driverObj = {}
+                let driverObj = {}
 
                 $(parentElem).children().each((childIdx, childElem) => {
                     let tdValue = $(childElem).text()
-                    if (driver === undefined) {
+
+                    if (driver === "") {
                         if (keyIdx === 1) {
                             tdValue = $('span:first-child', $(childElem).html()).text()
                         }
                     }
                     if (tdValue) {
-                        if (driver === undefined) {
-                            driverObj[keys[keyIdx]] = tdValue
+                        if (driver === "") {
+                            driverObj[keys[keyIdx]] = tdValue.trim()
                             keyIdx++
                         } else {
-                            driverObj[keysDriver[keyIdx]] = tdValue
+                            driverObj[driverkey[keyIdx]] = tdValue.trim()
+                      
                             keyIdx++
                         }
 
                     }
                 })
                 driversStanding.push(driverObj)
+                driverObj = {}
             })
         }))
     return driversStanding
@@ -156,6 +159,8 @@ function raceStanding(year, race, offset) {
     }
     if (offset === undefined) {
         offset = "&offset=0"
+    }else{
+        offset = "&offset=" + offset
     }
     url = "http://ergast.com/api/f1/" + year + "/" + race + "/laps.json?limit=1000" + offset
     axios.get(url).then(response => {
@@ -164,16 +169,17 @@ function raceStanding(year, race, offset) {
         racesStanding.push(data1)
 
 
-        total = (response.MRData.total)
-        if (total > 1000) {
-            offset = total - 1000
-            url = "http://ergast.com/api/f1/" + year + "/" + race + "/laps.json?limit=1000" + offset
-            axios.get(url).then(response => {
-                response = response.data
-                data2 = response.MRData.RaceTable.Races
-                console.log(data2)
-            })
-        }
+        // total = (response.MRData.total)
+        // if (total > 1000) {
+        //     offset = total - 1000
+        //     console.log(offset)
+        //     url = "http://ergast.com/api/f1/" + year + "/" + race + "/laps.json?limit=1000" + offset
+        //     axios.get(url).then(response => {
+        //         response = response.data
+        //         data2 = response.MRData.RaceTable.Races
+        //         console.log(data2)
+        //     })
+        // }
 
     })
 
@@ -206,17 +212,15 @@ app.get('/driverStanding', (req, res) => {
 
 })
 
-app.get('/driverStanding/:Nationality/:Car/:PTS', async (req, res) => {
-    let year = req.query.year
-    driverStanding(year)
-    var driver = driversStanding.find(driversStanding => driversStanding.Nationality === req.params.Nationality || driversStanding.Car === req.params.Car || driversStanding.PTS === req.params.PTS)
-    if (!driver) res.status(404).send("the driver with the given query was not found");
-    res.send(driver)
-    driversStanding = []
-})
 
 app.get('/teamStanding', (req, res) => {
+    let POS = req.query.pos
+    let team = req.query.team
+    let pts = req.query.pts
 
+    if (POS || team || pts != undefined){
+
+    }
     res.json(teamStanding())
     teamsStanding = []
 
@@ -250,10 +254,11 @@ app.get('/fastestLapStanding/:GrandPrix/:Driver/:Team', async (req, res) => {
 app.get('/race', (req, res) => {
     let year = req.query.year
     let race = req.query.race
+    let offset = req.query.offset
     if (year <= 1998) {
         res.send("This data does not exist choose a year equal too or above 1999")
     } else {
-        res.json(raceStanding(year, race))
+        res.json(raceStanding(year, race, offset))
     }
     racesStanding = []
 })
