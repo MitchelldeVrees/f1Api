@@ -9,6 +9,7 @@ let driversStanding = []
 let teamsStanding = []
 let fastestlapsStanding = []
 let racesStanding = []
+let racesResult = []
 
 
 function fastestlapStanding(year) {
@@ -199,6 +200,25 @@ function current() {
     return racesStanding
 }
 
+function raceResult(year, race) {
+//TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
+    if (year === undefined){
+        year = 2021
+    }
+    if (race === undefined){
+        race = 1
+    }
+    url = "http://ergast.com/api/f1/" + year + "/" + race +"/results.json"
+    console.log(url)
+    axios.get(url).then(response => {
+        response = response.data
+        racesResult = response.MRData.RaceTable.Races
+        console.log(url)
+        console.log(racesResult)
+    })
+    return racesResult
+}
+
 
 app.get('/', (req, res) => {
     res.json("Welcome to the F1 API")
@@ -266,6 +286,16 @@ app.get('/race', (req, res) => {
 app.get('/current', (req, res) => {
 
     res.json(current())
+
+})
+
+app.get('/raceResult', (req, res) => {
+    let year = req.query.year
+    let race = req.query.race
+
+
+    res.json(raceResult(year, race))
+    racesResult = []
 
 })
 
