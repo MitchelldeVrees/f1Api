@@ -8,14 +8,16 @@ const app = express()
 let driversStanding = []
 let teamsStanding = []
 let fastestlapsStanding = []
+let racesStanding = []
 
-function fastestlapStanding(year){
+
+function fastestlapStanding(year) {
 //TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
 
-    if (year === undefined){
+    if (year === undefined) {
         year = 2021
     }
-        url = "https://www.formula1.com/en/results.html/" + year + "/fastest-laps.html"
+    url = "https://www.formula1.com/en/results.html/" + year + "/fastest-laps.html"
     axios.get(url)
         .then((response => {
             const html = response.data
@@ -47,7 +49,7 @@ function fastestlapStanding(year){
     return fastestlapsStanding
 }
 
-function teamStanding(){
+function teamStanding() {
 //TODO MAKE IT SO A PERSON CAN CHOOSE A DIFFERENT YEAR
 //TODO PUT THE FUNCTION IN A DRIVERSTANDING FILE SO IT IS CLEAN LOOKING
 //TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
@@ -84,14 +86,14 @@ function teamStanding(){
 }
 
 
-function driverStanding(year, driver){
+function driverStanding(year, driver) {
 // get the drivers standing of a 2021
 //TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
 
-    if (driver === undefined){
+    if (driver === undefined) {
         driver = ""
     }
-    if (year === undefined){
+    if (year === undefined) {
         year = 2021
     }
     url = "https://www.formula1.com/en/results.html/" + year + "/drivers/" + driver + "01.html"
@@ -121,16 +123,16 @@ function driverStanding(year, driver){
 
                 $(parentElem).children().each((childIdx, childElem) => {
                     let tdValue = $(childElem).text()
-                    if(driver === undefined) {
+                    if (driver === undefined) {
                         if (keyIdx === 1) {
                             tdValue = $('span:first-child', $(childElem).html()).text()
                         }
                     }
                     if (tdValue) {
-                        if (driver === undefined){
+                        if (driver === undefined) {
                             driverObj[keys[keyIdx]] = tdValue
                             keyIdx++
-                        }else{
+                        } else {
                             driverObj[keysDriver[keyIdx]] = tdValue
                             keyIdx++
                         }
@@ -143,6 +145,54 @@ function driverStanding(year, driver){
     return driversStanding
 }
 
+function raceStanding(year, race, offset) {
+//TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
+
+    if (race === undefined) {
+        race = "1"
+    }
+    if (year === undefined) {
+        year = "2021"
+    }
+    if (offset === undefined) {
+        offset = "&offset=0"
+    }
+    url = "http://ergast.com/api/f1/" + year + "/" + race + "/laps.json?limit=1000" + offset
+    axios.get(url).then(response => {
+        response = response.data
+        data1 = response.MRData.RaceTable.Races
+        racesStanding.push(data1)
+
+
+        total = (response.MRData.total)
+        if (total > 1000) {
+            offset = total - 1000
+            url = "http://ergast.com/api/f1/" + year + "/" + race + "/laps.json?limit=1000" + offset
+            axios.get(url).then(response => {
+                response = response.data
+                data2 = response.MRData.RaceTable.Races
+                console.log(data2)
+            })
+        }
+
+    })
+
+    return racesStanding
+}
+
+function current() {
+//TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
+
+    url = "http://ergast.com/api/f1/current/last/results.json"
+    axios.get(url).then(response => {
+        response = response.data
+        racesStanding = response.MRData.RaceTable.Races
+
+    })
+
+    return racesStanding
+}
+
 
 app.get('/', (req, res) => {
     res.json("Welcome to the F1 API")
@@ -151,12 +201,12 @@ app.get('/', (req, res) => {
 app.get('/driverStanding', (req, res) => {
     let year = req.query.year
     let driver = req.query.driver
-    res.json(driverStanding(year,driver))
+    res.json(driverStanding(year, driver))
     driversStanding = []
 
 })
 
-app.get('/driverStanding/:Nationality/:Car/:PTS', async (req,res) =>{
+app.get('/driverStanding/:Nationality/:Car/:PTS', async (req, res) => {
     let year = req.query.year
     driverStanding(year)
     var driver = driversStanding.find(driversStanding => driversStanding.Nationality === req.params.Nationality || driversStanding.Car === req.params.Car || driversStanding.PTS === req.params.PTS)
@@ -172,7 +222,7 @@ app.get('/teamStanding', (req, res) => {
 
 })
 
-app.get('/teamStanding/:POS/:Team/:PTS', async (req,res) =>{
+app.get('/teamStanding/:POS/:Team/:PTS', async (req, res) => {
 
     teamStanding()
     var team = teamsStanding.find(teamsStanding => teamsStanding.POS === req.params.POS || teamsStanding.Team === req.params.Team || teamsStanding.PTS === req.params.PTS)
@@ -188,12 +238,29 @@ app.get('/fastestLapStanding', (req, res) => {
     fastestlapsStanding = []
 })
 
-app.get('/fastestLapStanding/:GrandPrix/:Driver/:Team', async (req,res) =>{
+app.get('/fastestLapStanding/:GrandPrix/:Driver/:Team', async (req, res) => {
     let year = req.query.year
     fastestlapStanding(year)
     var lap = fastestlapsStanding.find(fastestlapsStanding => fastestlapsStanding.Grandprix === req.params.Grandprix || fastestlapsStanding.Driver === req.params.Driver || fastestlapsStanding.Team === req.params.Team)
     if (!lap) res.status(404).send("the lap with the given query was not found");
     res.send(lap)
+
+})
+
+app.get('/race', (req, res) => {
+    let year = req.query.year
+    let race = req.query.race
+    if (year <= 1998) {
+        res.send("This data does not exist choose a year equal too or above 1999")
+    } else {
+        res.json(raceStanding(year, race))
+    }
+    racesStanding = []
+})
+
+app.get('/current', (req, res) => {
+
+    res.json(current())
 
 })
 
