@@ -1,7 +1,7 @@
 const express = require('express')
 const axios = require('axios')
 const cheerio = require('cheerio')
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 8000
 
 const app = express()
 
@@ -12,43 +12,31 @@ let racesStanding = []
 let racesResult = []
 
 
-function fastestlapStanding(year) {
-//TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
-
+function fastestlapStanding(year, race, standing) {
     if (year === undefined) {
         year = 2021
     }
-    url = "https://www.formula1.com/en/results.html/" + year + "/fastest-laps.html"
-    axios.get(url)
-        .then((response => {
-            const html = response.data
-            const $ = cheerio.load(html);
-            const element = 'body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content > div > table > tbody > tr'
 
-            const keys = [
-                'GrandPrix',
-                'Driver',
-                'Team',
-                'Time'
+    if (race === undefined) {
+        race = 1
+    }
 
-            ]
-            $(element).each((parentIdx, parentElem) => {
-                let keyIdx = 0
-                const lapObj = {}
+    if (standing === undefined) {
+        standing = 1
+    }
 
-                $(parentElem).children().each((childIdx, childElem) => {
-                    let tdValue = $(childElem).text()
+    url = "https://ergast.com/api/f1/" + year + "/ " + race + "/fastest/" + standing + "/results.json"
+    axios.get(url).then(response => {
+        
+        response = response.data
+        fastestlapsStanding = response.MRData.RaceTable.Races
 
-                    if (tdValue) {
-                        lapObj[keys[keyIdx]] = tdValue
-                        keyIdx++
-                    }
-                })
-                fastestlapsStanding.push(lapObj)
-            })
-        }))
+    })
+   
     return fastestlapsStanding
 }
+
+
 
 function teamStanding() {
 //TODO MAKE IT SO A PERSON CAN CHOOSE A DIFFERENT YEAR
@@ -201,7 +189,7 @@ function current() {
 }
 
 function raceResult(year, race) {
-//TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
+//EXAMPLE: http://localhost:8000/raceResult?year=2022&race=2
     if (year === undefined){
         year = 2021
     }
@@ -258,18 +246,14 @@ app.get('/teamStanding/:POS/:Team/:PTS', async (req, res) => {
 
 app.get('/fastestLapStanding', (req, res) => {
     let year = req.query.year
-    res.json(fastestlapStanding(year))
+    let race = req.query.race
+    let standing = req.query.standing
+
+    res.json(fastestlapStanding(year,race,standing))
     fastestlapsStanding = []
 })
 
-app.get('/fastestLapStanding/:GrandPrix/:Driver/:Team', async (req, res) => {
-    let year = req.query.year
-    fastestlapStanding(year)
-    var lap = fastestlapsStanding.find(fastestlapsStanding => fastestlapsStanding.Grandprix === req.params.Grandprix || fastestlapsStanding.Driver === req.params.Driver || fastestlapsStanding.Team === req.params.Team)
-    if (!lap) res.status(404).send("the lap with the given query was not found");
-    res.send(lap)
 
-})
 
 app.get('/race', (req, res) => {
     let year = req.query.year
