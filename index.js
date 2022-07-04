@@ -38,12 +38,12 @@ function fastestlapStanding(year, race, standing) {
 
 
 
-function teamStanding() {
+function teamStanding(year) {
 //TODO MAKE IT SO A PERSON CAN CHOOSE A DIFFERENT YEAR
 //TODO PUT THE FUNCTION IN A DRIVERSTANDING FILE SO IT IS CLEAN LOOKING
 //TODO A PERSON CAN FILL IN 1 VALUE IN THE QUERY AND IT STILL WORKS EXAMPLE: http://localhost:8000/driverStandings/GBR/
 
-    axios.get('https://www.formula1.com/en/results.html/2021/team.html')
+    axios.get('https://www.formula1.com/en/results.html/' + year + '/team.html')
         .then((response => {
             const html = response.data
             const $ = cheerio.load(html);
@@ -214,35 +214,24 @@ app.get('/', (req, res) => {
 
 app.get('/driverStanding', (req, res) => {
     let year = req.query.year
-    let driver = req.query.driver
-    res.json(driverStanding(year, driver))
+    res.json(driverStanding(year))
     driversStanding = []
 
 })
 
 
 app.get('/teamStanding', (req, res) => {
-    let POS = req.query.pos
-    let team = req.query.team
-    let pts = req.query.pts
+    let year = req.query.year
 
-    if (POS || team || pts != undefined){
 
+    if (year == undefined){
+        year = 2021
     }
-    res.json(teamStanding())
+    res.json(teamStanding(year))
     teamsStanding = []
 
 })
 
-app.get('/teamStanding/:POS/:Team/:PTS', async (req, res) => {
-
-    teamStanding()
-    var team = teamsStanding.find(teamsStanding => teamsStanding.POS === req.params.POS || teamsStanding.Team === req.params.Team || teamsStanding.PTS === req.params.PTS)
-    if (!team) res.status(404).send("the team with the given query was not found");
-    res.send(team)
-    teamsStanding = []
-
-})
 
 app.get('/fastestLapStanding', (req, res) => {
     let year = req.query.year
