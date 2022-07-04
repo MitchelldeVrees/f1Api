@@ -257,7 +257,7 @@ app.get('/race', (req, res) => {
 })
 
 app.get('/current', (req, res) => {
-
+    //Kan nog worden uitgebreid met tyre type enzo
     res.json(current())
 
 })
